@@ -267,50 +267,103 @@ function App() {
           </div>
         )}
 
-        {/* Legend */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '30px', 
-          marginBottom: '20px',
-          fontSize: '14px',
-          justifyContent: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '20px', 
-              height: '20px', 
-              backgroundColor: '#4ade80',
-              borderRadius: '3px'
-            }}></div>
-            <span>Work Completed</span>
+        {/* Legend - Only show in weekly view */}
+        {viewMode === 'weekly' && (
+          <div style={{ 
+            display: 'flex', 
+            gap: '30px', 
+            marginBottom: '20px',
+            fontSize: '14px',
+            justifyContent: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '20px', 
+                height: '20px', 
+                backgroundColor: '#4ade80',
+                borderRadius: '3px'
+              }}></div>
+              <span>Work Completed</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '20px', 
+                height: '20px', 
+                backgroundColor: '#60a5fa',
+                borderRadius: '3px'
+              }}></div>
+              <span>Task Assigned</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '20px', 
+                height: '20px', 
+                backgroundColor: '#ef4444',
+                borderRadius: '3px'
+              }}></div>
+              <span>Absent/Work Incomplete</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '20px', 
-              height: '20px', 
-              backgroundColor: '#60a5fa',
-              borderRadius: '3px'
-            }}></div>
-            <span>Task Assigned</span>
+        )}
+
+        {/* Legend for monthly view */}
+        {viewMode === 'monthly' && (
+          <div style={{ 
+            display: 'flex', 
+            gap: '30px', 
+            marginBottom: '20px',
+            fontSize: '14px',
+            justifyContent: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '20px', 
+                height: '20px', 
+                backgroundColor: '#c084fc',
+                borderRadius: '3px'
+              }}></div>
+              <span>Total hours worked</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '20px', 
+                height: '3px', 
+                backgroundColor: '#fb923c',
+                borderRadius: '2px'
+              }}></div>
+              <span>Total no. of leave taken</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '20px', 
-              height: '20px', 
-              backgroundColor: '#ef4444',
-              borderRadius: '3px'
-            }}></div>
-            <span>Absent/Work Incomplete</span>
+        )}
+
+        {/* Legend for yearly view */}
+        {viewMode === 'yearly' && (
+          <div style={{ 
+            display: 'flex', 
+            gap: '30px', 
+            marginBottom: '20px',
+            fontSize: '14px',
+            justifyContent: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '20px', 
+                height: '20px', 
+                backgroundColor: '#fb923c',
+                borderRadius: '3px'
+              }}></div>
+              <span>Total hours worked</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Chart */}
-        <div style={{ width: '100%', height: 400 }}>
+        <div style={{ width: '100%', height: 500 }}>
           <ResponsiveContainer width="100%" height="100%">
             {viewMode === 'weekly' ? (
             <BarChart 
               data={data} 
-              margin={{ top: 20, right: 10, left: 10, bottom: 20 }}
+              margin={{ top: 20, right: 10, left: 10, bottom: 100 }}
               barCategoryGap="2%"
               barGap={0}
             >
@@ -320,19 +373,73 @@ function App() {
                 tick={({ x, y, payload }) => {
                   const item = data[payload.index]
                   const weekdayColor = (item.isSaturday || item.isSunday) ? '#ef4444' : '#666'
+                  
+                  // Calculate week number and week boundaries
+                  const dayNum = payload.index + 1
+                  const weekNum = Math.floor(payload.index / 7)
+                  const isFirstDayOfWeek = payload.index % 7 === 0
+                  const daysInWeek = Math.min(7, 30 - weekNum * 7)
+                  
+                  // Calculate average hours for this week
+                  let weekTotalHours = 0
+                  let weekDaysCount = 0
+                  for (let i = weekNum * 7; i < Math.min((weekNum + 1) * 7, 30); i++) {
+                    if (data[i].taskDuration > 0) {
+                      weekTotalHours += data[i].taskDuration
+                      if (data[i].hasDoubleShift) {
+                        weekTotalHours += data[i].taskDuration2
+                      }
+                      weekDaysCount++
+                    }
+                  }
+                  const avgHours = weekDaysCount > 0 ? (weekTotalHours / weekDaysCount).toFixed(1) : 0
+                  const totalHours = weekTotalHours.toFixed(1)
+                  
                   return (
                     <g transform={`translate(${x},${y})`}>
+                      {/* Day number */}
                       <text x={0} y={0} dy={10} textAnchor="middle" fill="#666" fontSize={11}>
                         {item.day}
                       </text>
+                      {/* Weekday */}
                       <text x={0} y={0} dy={24} textAnchor="middle" fill={weekdayColor} fontSize={11}>
                         {item.weekday}
                       </text>
+                      
+                      {/* Light blue rectangle for week - only draw on first day of week */}
+                      {isFirstDayOfWeek && (
+                        <>
+                          {/* Rectangle spanning full week width */}
+                          <line x1={0} y1={40} x2={daysInWeek * 43} y2={40} stroke="#bfdbfe" strokeWidth={0} />
+                          <line x1={0} y1={40} x2={0} y2={65} stroke="#60a5fa" strokeWidth={2} />
+                          <line x1={0} y1={65} x2={daysInWeek * 43} y2={65} stroke="#60a5fa" strokeWidth={2} />
+                          <line x1={daysInWeek * 43} y1={40} x2={daysInWeek * 43} y2={65} stroke="#60a5fa" strokeWidth={2} />
+                          <rect
+                            x={0}
+                            y={40}
+                            width={daysInWeek * 43}
+                            height={25}
+                            fill="#bfdbfe"
+                            fillOpacity={0.5}
+                          />
+                          {/* Week average text */}
+                          <text 
+                            x={daysInWeek * 21.5} 
+                            y={52} 
+                            textAnchor="middle" 
+                            fill="#1e40af" 
+                            fontSize={10}
+                            fontWeight="600"
+                          >
+                            Avg: {avgHours}h | Total: {totalHours}h
+                          </text>
+                        </>
+                      )}
                     </g>
                   )
                 }}
                 interval={0}
-                height={50}
+                height={90}
                 axisLine={{ stroke: '#d1d5db' }}
                 tickLine={false}
               />
